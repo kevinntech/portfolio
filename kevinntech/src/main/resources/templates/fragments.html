@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
+<head th:fragment="head">
+    <meta charset="UTF-8">
+    <title>BOARD</title>
+    <link href="https://fonts.googleapis.com/css?family=Noto+Sans+KR:300,400,500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/node_modules/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="/node_modules/font-awesome/css/font-awesome.min.css" />
+    <link rel="stylesheet" href="/node_modules/summernote/dist/summernote-bs4.min.css">
+    <script src="/node_modules/jquery/dist/jquery.min.js"></script>
+    <script src="/node_modules/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/node_modules/jdenticon/dist/jdenticon.min.js"></script>
+    <style>
+        * {
+            font-family: -apple-system, BlinkMacSystemFont, "Noto Sans KR", "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+        }
+
+        /* ------ 고정된 FOOTER ------ */
+        html {
+            position: relative;
+            min-height: 100%;
+        }
+        body {
+            /* Margin bottom by footer height */
+            margin-bottom: 60px;
+        }
+        .footer {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 60px;
+            line-height: 60px;
+            background-color: #f5f5f5;
+        }
+
+        .custom-comments-border {
+            border-bottom : 2px solid rgb(222, 226, 230);
+        }
+
+        .custom-profile-box {
+            width: 32px;
+            height: 32px;
+            background-color: rgb(34, 35, 35);
+            border-radius: 4px;
+            color: white;
+            font-size: 22px;
+        }
+
+    </style>
+</head>
+
+<!-- 네비게이션 -->
+<nav th:fragment="main-nav" class="navbar navbar-expand-sm navbar-dark bg-dark">
+    <a class="navbar-brand" href="/" th:href="@{/}">
+        BOARD
+    </a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+        <ul class="navbar-nav mr-auto"></ul>
+
+        <ul class="navbar-nav justify-content-end">
+            <li class="nav-item" sec:authorize="!isAuthenticated()">
+                <a class="nav-link" th:href="@{/login}">로그인</a>
+            </li>
+
+            <li class="nav-item" sec:authorize="!isAuthenticated()">
+                <a class="nav-link" th:href="@{/sign-up}">회원가입</a>
+            </li>
+
+            <li class="nav-item dropdown" sec:authorize="isAuthenticated()">
+                <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-toggle="dropdown"
+                   aria-haspopup="true" aria-expanded="false">
+                    <svg th:if="${#strings.isEmpty(account?.profileImage)}" th:data-jdenticon-value="${#authentication.name}"
+                         width="24" height="24" class="rounded border bg-light"></svg>
+                    <img th:if="${!#strings.isEmpty(account?.profileImage)}" th:src="${account.profileImage}"
+                         width="24" height="24" class="rounded border"/>
+                </a>
+                <div class="dropdown-menu dropdown-menu-sm-right" aria-labelledby="userDropdown">
+                    <h6 class="dropdown-header">
+                        <span sec:authentication="name">Username</span>
+                    </h6>
+                    <a class="dropdown-item" th:href="@{'/profile/' + ${#authentication.name}}">프로필</a>
+                    <div class="dropdown-divider"></div>
+                    <a class="dropdown-item" href="#" th:href="@{'/settings/profile'}">설정</a>
+                    <form class="form-inline my-2 my-lg-0" action="#" th:action="@{/logout}" method="post">
+                        <button class="dropdown-item" type="submit">로그아웃</button>
+                    </form>
+                </div>
+            </li>
+        </ul>
+    </div>
+</nav>
+
+<!-- 푸터 -->
+<footer class="footer" th:fragment="footer">
+    <div class="container text-center">
+        <span class="text-muted">BOARD &copy; 2020</span>
+    </div>
+</footer>
+
+<!-- SETTINGS 메뉴 -->
+<div th:fragment="settings-menu (currentMenu)" class="list-group">
+    <a class="list-group-item list-group-item-action" th:classappend="${currentMenu == 'profile'}? active" href="#" th:href="@{/settings/profile}">프로필</a>
+    <a class="list-group-item list-group-item-action" th:classappend="${currentMenu == 'password'}? active" href="#" th:href="@{/settings/password}">패스워드</a>
+    <a class="list-group-item list-group-item-action list-group-item-danger" th:classappend="${currentMenu == 'account'}? active" href="#" th:href="@{/settings/account}">계정</a>
+</div>
+
+<!-- 게시판 게시글 목록 -->
+<div th:fragment="board-list (boardList)">
+    <table class="table border-bottom border-gray">
+        <thead>
+        <tr>
+            <th scope="col">번호</th>
+            <th scope="col">제목</th>
+            <th scope="col">작성자</th>
+            <th scope="col">작성일</th>
+        </tr>
+        </thead>
+
+        <tbody>
+        <tr th:each="board: ${boardList}">
+            <th scope="row" th:text="${board.id}">1</th>
+            <td>
+                <a th:href="@{'/board/' + ${board.id}}" class="text-decoration-none">
+                    <span class="text-truncate" th:text="${board.title}"></span>
+                </a>
+            </td>
+            <td th:text="${board.updatedByNickname}">별명</td>
+            <td th:text="${#temporals.format(board.updatedDate, 'yyyy년 MM월 dd일')}">작성일</td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+
+<!-- 폼 검증 스크립트 -->
+<script type="application/javascript" th:fragment="form-validation">
+    (function () {
+        'use strict';
+
+        window.addEventListener('load', function () {
+            // Fetch all the forms we want to apply custom Bootstrap validation styles to
+            var forms = document.getElementsByClassName('needs-validation');
+
+            // Loop over them and prevent submission
+            Array.prototype.filter.call(forms, function (form) {
+                form.addEventListener('submit', function (event) {
+                    if (form.checkValidity() === false) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                    }
+                    form.classList.add('was-validated')
+                }, false)
+            })
+        }, false)
+    }())
+</script>
+
+<!-- CSRF 토큰 스크립트 -->
+<script type="application/javascript" th:inline="javascript" th:fragment="ajax-csrf-header">
+    $(function() {
+        var csrfToken = /*[[${_csrf.token}]]*/ null;
+        var csrfHeader = /*[[${_csrf.headerName}]]*/ null;
+        $(document).ajaxSend(function (e, xhr, options) {
+            xhr.setRequestHeader(csrfHeader, csrfToken);
+        });
+    });
+</script>
+
+<!-- SUMMERNOTE 스크립트 -->
+<div th:fragment="editor-script">
+    <script src="/node_modules/summernote/dist/summernote-bs4.js"></script>
+    <script src="/node_modules/summernote/lang/summernote-ko-KR.js"></script>
+    <script type="application/javascript">
+
+        $(function () {
+            $('#content').summernote({
+                height: 600,
+                fontNames: ['Arial', 'Arial Black', 'Comic Sans MS', 'Courier New', 'Noto Sans KR', 'Merriweather'],
+                tabsize: 2,
+                placeholder: '내용을 입력하세요.',
+                lang: 'ko-KR'
+            });
+        });
+
+    </script>
+</div>
+
+<!-- 댓글 스크립트 (BASIC) -->
+<script type="application/javascript" th:inline="javascript" th:fragment="comment-script">
+    var replyManager = (function(){
+
+        var getAll  = function(obj, callback){
+            console.log("전부 가져오기 LOG");
+
+            // $.getJSON() : HTTP GET 요청 방식을 통해 서버로 부터 받은 JSON 데이터를 읽어온다. (AJAX)
+            $.getJSON('/comment/' + obj,callback );
+
+        };
+
+        var add = function(obj, callback){
+            console.log("추가 LOG");
+
+            console.log(obj.content);
+
+            $.ajax({
+                type:'post',
+                url: '/comment/' + obj.bid,
+                data:JSON.stringify(obj),
+                dataType:'json',
+                contentType: "application/json",
+                success:callback
+            });
+        };
+
+        var update = function(obj, callback){
+            console.log("수정 LOG");
+
+            $.ajax({
+                type:'put',
+                url: '/comment/' + obj.bid + "/" + obj.cid,
+                dataType:'json',
+                data: JSON.stringify(obj),
+                contentType: "application/json",
+                success:callback
+            });
+
+        };
+
+        var remove = function(obj, callback){
+            console.log("삭제 LOG");
+
+            $.ajax({
+                type:'delete',
+                url: '/comment/' + obj.bid + "/" + obj.cid,
+                dataType:'json',
+                contentType: "application/json",
+                success:callback
+            });
+        };
+
+        return {
+            getAll: getAll,
+            add:add,
+            update:update,
+            remove:remove
+        }
+
+    })();
+</script>
+
+<!-- 댓글 목록 출력 스크립트 th:inline="javascript"가 없으면 [[${exp}]]는 동작하지 않음 -->
+<script type="application/javascript" th:inline="javascript" th:fragment="comment-list-script">
+
+    $(document).ready(function (e){
+        var mode; // MODAL 창을 댓글 수정, 삭제에도 사용 할 수 있도록 구분하기 위함
+        var bid = [[${board.id}]];
+        var currentUser = /*[[${currentUser}]]*/ 'default'; // 현재 사용자 닉네임
+
+        var commentTextObject = $("#comment-text");
+        var writerObject = $("#comment-writer");
+
+        var rid;
+
+        // 댓글 추가 팝업창
+        $("#addReplyBtn").on('click', function(){
+
+            $("#myModal").modal("show");
+            commentTextObject.val("");
+            writerObject.val(currentUser);
+
+            mode = "ADD"; // 댓글 추가 모드
+        });
+
+        // 게시글에 해당하는 모든 댓글 가져오기
+        (function getAllReplies(){
+            replyManager.getAll([[${board.id}]], printList);
+        })();
+
+        // 댓글 목록 출력하기 (실제 댓글 화면 렌더링 부분)
+        function printList(list){
+            var str = "";
+            var commentObject;
+
+            /*
+            * list는 서버로 부터 전달 받은 List<CommentForm>를 의미한다.
+            * 댓글 데이터가 없는 경우 아래 화면을 렌더링한다.
+            * */
+            if(list.length <= 0){
+                str = "<div class='p-3 bg-white shadow-sm custom-comments-border'>" +
+                            "<div class='media py-3'>" +
+                                "<div id='replyText'>" +
+                                  "작성된 댓글이 없습니다." +
+                                "</div>" +
+                            "</div>" +
+                       "</div>"
+
+                $("#comment-container").html(str);
+
+                return;
+            }
+
+            console.log("현재 유저 : " + currentUser);
+
+            for(var i = 0; i < list.length; i++){
+                commentObject = list[i];
+
+                /*
+                * 댓글 작성자의 프로필 이미지가 있다면 프로필 이미지를 표시하고 없다면 기본 이미지 표시
+                * 댓글 작성자 본인일 경우에만 수정, 삭제 보이도록 함
+                * */
+                if(commentObject.profileImage != null) {
+                    str += "<div class='p-3 bg-white shadow-sm custom-comments-border'>" +
+                               "<div class='media border-gray pb-2 mb-0'>" +
+                                     "<img class='rounded' width='32' height='32' alt='name' src=" + commentObject.profileImage + " />" +
+                                     "<p class='media-body pl-2 pb-3 mb-0 small lh-125'>" +
+                                          "<strong class='d-block text-gray-dark'>" + commentObject.updatedByNickname + "</strong>" +
+                                          "<span>" + formatDate(commentObject.updatedDate) + "</span>" +
+                                     "</p>" +
+                               "</div>" +
+                               "<div class='media py-3'>" +
+                                     "<div id=" + commentObject.updatedByNickname + "-" + commentObject.id + ">" + commentObject.content.replaceAll(" ", "&nbsp;") + "</div>" +
+                               "</div>"
+
+                    if(currentUser == commentObject.updatedByNickname){
+                        str += "<div class='row justify-content-end'>" +
+                                     "<button type='button' class='btn btn-outline-primary btn-sm mr-1' name='comment_modify' comment-id=" + commentObject.id + " comment-nickname=" + commentObject.updatedByNickname + "> 수정 </button>" +
+                                     "<button type='button' class='btn btn-outline-danger btn-sm mr-2' name='comment_delete' comment-id=" + commentObject.id  + " comment-nickname=" + commentObject.updatedByNickname + "> 삭제 </button>" +
+                               "</div>"
+                    }
+
+                    str += "</div>"
+                }else{
+                    str += "<div class='p-3 bg-white shadow-sm custom-comments-border'>" +
+                               "<div class='media border-gray pb-2 mb-0'>" +
+                                      "<div class='custom-profile-box text-center'>" +
+                                            "<i class='fa fa-user align-middle' aria-hidden='true'> </i>" +
+                                      "</div>" +
+                                      "<p class='media-body pl-2 pb-3 mb-0 small lh-125'>" +
+                                          "<strong class='d-block text-gray-dark'>" + commentObject.updatedByNickname + "</strong>" +
+                                          "<span>" + formatDate(commentObject.updatedDate) + "</span>" +
+                                      "</p>" +
+                               "</div>" +
+                               "<div class='media py-3'>" +
+                                     "<div id=" + commentObject.updatedByNickname + "-" + commentObject.id + ">" + commentObject.content + "</div>" +
+                               "</div>"
+
+                    if(currentUser == commentObject.updatedByNickname){
+                        str += "<div class='row justify-content-end'>" +
+                                     "<button type='button' class='btn btn-outline-primary btn-sm mr-1' name='comment_modify' comment-id=" + commentObject.id + " comment-nickname=" + commentObject.updatedByNickname + "> 수정 </button>" +
+                                     "<button type='button' class='btn btn-outline-danger btn-sm mr-2' name='comment_delete' comment-id=" + commentObject.id  + " comment-nickname=" + commentObject.updatedByNickname + "> 삭제 </button>" +
+                               "</div>"
+                    }
+
+                    str += "</div>"
+                }
+            }
+
+            $("#comment-container").html(str);
+        }
+
+        // 날짜 포맷
+        function formatDate(timeValue){
+
+            var date = new Date(timeValue);
+
+            return  date.getFullYear()
+                + "-" + (date.getMonth() + 1 >= 10? date.getMonth() + 1 : '0' + (date.getMonth() + 1))
+                + "-" + date.getDate()
+        }
+
+        // 수정 버튼 클릭 시, 동작 코드
+        $("#comment-container").on("click", "button[name='comment_modify']", function(e){
+            var commentId = $(this).attr("comment-id");                             // 댓글 id
+            var commentnickname = $(this).attr("comment-nickname");                 // 댓글 작성자 별명
+            var commentContent = $("#" + commentnickname + "-" + commentId).html().replaceAll("<br>", "\r\n").replaceAll("&nbsp;", " "); // 댓글 작성 내용
+
+            cid = commentId; // 댓글 id 변수에 저장
+            mode ='MOD'; // 수정 모드로 변경
+
+            console.log(commentContent)
+
+            // 모달창에 댓글 내용 설정
+            writerObject.val(commentnickname);
+            commentTextObject.val(commentContent);
+
+            $("#myModal").modal("show");
+        });
+
+        // 삭제 버튼 클릭 시, 동작 코드
+        $("#comment-container").on("click", "button[name='comment_delete']", function(e){
+            var commentId = $(this).attr("comment-id"); // 댓글 id
+
+            cid = commentId; // 댓글 id 변수에 저장
+
+            var obj = { bid:bid,
+                        cid:cid };
+
+            replyManager.remove(obj, function(list){
+                alert("댓글이 삭제되었습니다.")
+                afterAll(list);
+            });
+
+        });
+
+        // 댓글 저장 및 수정하기
+        $("#modalBtn").click(function(){
+            var commentText = commentTextObject.val().replace(/\n/g, "<br>");
+
+            var writerText = writerObject.val();
+
+            console.log(commentText);
+
+            if(mode =='ADD'){ // 등록 모드
+                var obj = { content : commentText,
+                            updatedByNickname : currentUser,
+                            bid : bid };
+
+                replyManager.add(obj, function(list){
+                    afterAll(list);
+                });
+
+            }else if(mode='MOD'){ // 수정 모드
+                var obj = { content : commentText,
+                            bid : bid,
+                            cid : cid };
+
+                replyManager.update(obj, function(list){
+                    afterAll(list);
+                });
+
+            }
+        });
+
+        function afterAll(list){
+            printList(list);
+            $("#myModal").modal("hide");
+
+            commentTextObject.val("");
+            writerObject.val("");
+        }
+
+    });
+
+</script>
+
+<div th:fragment="comment-list-script">
+    <script src="/node_modules/summernote/dist/summernote-bs4.js"></script>
+    <script src="/node_modules/summernote/lang/summernote-ko-KR.js"></script>
+    <script type="application/javascript">
+
+        $(function () {
+            $('#content').summernote({
+                height: 600,
+                fontNames: ['Arial', 'Arial Black', 'Comic Sans MS', 'Courier New', 'Noto Sans KR', 'Merriweather'],
+                tabsize: 2,
+                placeholder: '내용을 입력하세요.',
+                lang: 'ko-KR'
+            });
+        });
+
+    </script>
+</div>
+
+
+</html>

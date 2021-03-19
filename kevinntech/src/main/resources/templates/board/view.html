@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+                xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="fragments.html :: head"></head>
+<body class="bg-light">
+    <div th:replace="fragments.html :: main-nav"></div>
+
+    <div class="container my-5">
+        <!-- 게시글 제목 -->
+        <div class="my-3 p-4 bg-white rounded shadow-sm">
+            <div class="lh-100">
+                <h6 class="mb-0 lh-100" th:text="${boardForm.title}">게시글 제목 입니다.</h6>
+            </div>
+        </div>
+
+        <!-- 게시글 내용 -->
+        <div class="my-3 p-3 bg-white rounded shadow-sm">
+
+            <!-- 게시글 작성자 정보 -->
+            <div class="media border-bottom border-gray pb-2 mb-0">
+                <svg th:if="${#strings.isEmpty(postAccount.profileImage)}" class="rounded"
+                     th:data-jdenticon-value="${postAccount.nickname}" width="32" height="32"></svg>
+                <img th:if="${!#strings.isEmpty(postAccount.profileImage)}" class="rounded"
+                     th:src="${postAccount.profileImage}"
+                     width="32" height="32" alt="name" th:alt="${postAccount.nickname}"/>
+                <p class="media-body pl-2 pb-3 mb-0 small lh-125">
+                    <strong class="d-block text-gray-dark" th:text="${postAccount.nickname}">사용자 별명</strong>
+                    <span th:text="${#temporals.format(board.updatedDate, 'yyyy년 MM월 dd일 HH:mm')}"> 게시글 작성일시 </span>
+                </p>
+            </div>
+
+            <!-- 게시글 내용 -->
+            <div class="media pt-3">
+                <div th:utext="${boardForm.content}">
+                    게시글 내용 입니다.
+                </div>
+            </div>
+
+            <!-- 게시글 수정 / 삭제 버튼 (작성자만 사용 가능)-->
+            <small class="d-block text-right mt-3" th:if="${isOwner}">
+                <form class="form-inline justify-content-end" th:action="@{'/board/' + ${board.id} + '/delete'}" method="post" novalidate>
+                    <a class="btn btn-outline-primary mr-1" href="#" th:href="@{'/board/' + ${board.id}+ '/modify'}">수정</a>
+                    <button class="btn btn-outline-danger" type="submit" aria-describedby="submitHelp">삭제</button>
+                </form>
+            </small>
+        </div>
+
+        <!-- 게시글 댓글 (HEADER) -->
+        <div class="p-3 bg-white shadow-sm custom-comments-border">
+            댓글
+        </div>
+
+        <!-- 게시글 댓글 (CONTENT) -->
+        <!-- 이 부분이 타임리프로 반복될 구간이다.  -->
+        <div id="comment-container">
+
+        </div>
+
+        <div class='pull-right my-3'>
+            <a class="btn btn-success" role="button" id="addReplyBtn" sec:authorize="isAuthenticated()">댓글 추가</a>
+        </div>
+
+    </div>
+
+    <!-- MODAL -->
+    <div id="myModal" class="modal fade" role="dialog">
+        <div class="modal-dialog">
+            <!-- Modal content-->
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title"></h4>
+                </div>
+                <div class="modal-body">
+                    <label>작성자</label>
+                    <input type="text" class="form-control" name='replyer' id="comment-writer" readonly>
+
+                    <label class="my-3">댓글 내용</label>
+<!--                    <input type="text" class="form-control" name='replyText' id="comment-text">-->
+                    <textarea class="form-control" name='replyText' id="comment-text" rows="5"></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button id='modalBtn' class="btn btn-primary">저장</button>
+                    <button type="button" class="btn btn-default" data-dismiss="modal">취소</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 로그인 하지 않았을 때, csrf 토큰이 있으면 에러가 생겨서 로그인한 경우에만 추가 하도록 함 -->
+    <script sec:authorize="isAuthenticated()" th:replace="fragments.html :: ajax-csrf-header"></script>
+    <script th:replace="fragments.html :: comment-script"></script>
+    <script th:replace="fragments.html :: comment-list-script"></script>
+</body>
+</html>
